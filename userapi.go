@@ -7,11 +7,12 @@ import (
 )
 
 type User struct {
-	Name   string `json:"name"`
-	Email  string `json:"email"`
-	Phone  string `json:"phone"`
-	UserID string `json:"user_id"`
-	City   string `json:"city"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Phone    string `json:"phone" binding:"required"`
+	UserID   string `json:"user_id" binding:"required"`
+	City     string `json:"city"`
+	Password string `json:"password"`
 }
 
 var Data map[string]User
@@ -29,6 +30,7 @@ func setupRoutes(r *gin.Engine) {
 	r.POST("/user", CreateUser)
 	r.PUT("/user/:user_id", UpdateUser)
 	r.DELETE("/user/:user_id", DeleteUser)
+
 }
 
 //GetUserByUserID function
@@ -119,6 +121,17 @@ func UpdateUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, res)
 		return
 	}
+	//password function call
+	password := c.GetHeader("password")
+
+	if !checkpassword(userID, password) {
+		res := gin.H{
+			"error": "invalid password",
+		}
+		c.JSON(http.StatusBadRequest, res)
+		return
+	}
+
 	Data[userID] = reqBody
 	res := gin.H{
 		"success": true,
@@ -135,7 +148,7 @@ func DeleteUser(c *gin.Context) {
 		res := gin.H{
 			"error": "user_id is missing",
 		}
-		c.JSON(http.StatusOK, res)
+		c.JSON(http.StatusBadRequest, res)
 		return
 	}
 
@@ -156,13 +169,7 @@ func DeleteUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, res)
 		return
 	}
-	if reqBody.UserID != userID {
-		res := gin.H{
-			"error": "UserId cannot be deleted",
-		}
-		c.JSON(http.StatusBadRequest, res)
-		return
-	}
+
 	//Data[userID] = reqBody
 	result := deleteuserID(userID)
 	res := gin.H{
@@ -172,4 +179,16 @@ func DeleteUser(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, res)
 	return
+}
+
+// to check the password....
+func checkpassword(username, password string) bool {
+	if Data[username].Password == password {
+
+		return true
+
+	} else {
+		return false
+	}
+
 }
