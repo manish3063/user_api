@@ -1,12 +1,15 @@
 package main
 
 import (
+	"database/sql"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 type User struct {
+	ID       int    `json:"id"`
 	Name     string `json:"name"`
 	Email    string `json:"email"`
 	Phone    string `json:"phone" binding:"required"`
@@ -15,7 +18,10 @@ type User struct {
 	Password string `json:"password"`
 }
 
-var Data map[string]User
+var (
+	Data map[string]User
+	DB   *sql.DB
+)
 
 func main() {
 	Data = make(map[string]User)
@@ -44,7 +50,7 @@ func GetUserByUserID(c *gin.Context) {
 		c.JSON(http.StatusOK, res)
 		return
 	}
-	user := getUserByID(userID)
+	user, _ := getUserByIDFromDB(userID)
 	res := gin.H{
 		"user": user,
 	}
@@ -77,13 +83,15 @@ func CreateUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, res)
 		return
 	}
-	Data[reqBody.UserID] = reqBody
+	insert := insertUserinDB(reqBody)
+	//Data[reqBody.UserID] = reqBody
 	res := gin.H{
-		"success": true,
-		"user":    reqBody,
+		"result": insert,
+		"user":   reqBody,
 	}
 	c.JSON(http.StatusOK, res)
 	return
+
 }
 
 //Update User PUT
@@ -120,6 +128,7 @@ func UpdateUser(c *gin.Context) {
 		}
 		c.JSON(http.StatusBadRequest, res)
 		return
+
 	}
 	//password function call
 	password := c.GetHeader("password")
@@ -132,13 +141,16 @@ func UpdateUser(c *gin.Context) {
 		return
 	}
 
-	Data[userID] = reqBody
+	//
+	update := updateUserinDB(reqBody)
+	//Data[reqBody.UserID] = reqBody
 	res := gin.H{
-		"success": true,
-		"user":    reqBody,
+		"result": update,
+		"user":   reqBody,
 	}
 	c.JSON(http.StatusOK, res)
 	return
+
 }
 
 //Delete user by id
@@ -171,24 +183,32 @@ func DeleteUser(c *gin.Context) {
 	}
 
 	//Data[userID] = reqBody
-	result := deleteuserID(userID)
+	// result := deleteuserID(userID)
+	// res := gin.H{
+	// 	"success": true,
+	// 	"user":    reqBody,
+	// 	"message": result,
+	// }
+	// c.JSON(http.StatusOK, res)
+	// return
+
+	delete := deleteUserinDB(userID)
+	//Data[reqBody.UserID] = reqBody
 	res := gin.H{
-		"success": true,
-		//"user":    reqBody,
-		"message": result,
+		"result": delete,
+		"user":   reqBody,
 	}
 	c.JSON(http.StatusOK, res)
 	return
+
 }
 
 // to check the password....
 func checkpassword(username, password string) bool {
-	if Data[username].Password == password {
-
+	user, err := getUserByIDFromDB(username)
+	fmt.Println(user, err, username, password)
+	if user.Password == password {
 		return true
-
-	} else {
-		return false
 	}
-
+	return false
 }
